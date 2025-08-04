@@ -43,5 +43,6 @@ def verify():
     except Exception as e:
         print("[ERROR]", str(e))
         return jsonify({"error": str(e)}), 500
-app.run(port=5001)
+app.run(host="0.0.0.0",port=5000)
+
     
