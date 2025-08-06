@@ -7,7 +7,9 @@ from io import BytesIO
 from PIL import Image
 app = Flask(__name__)
 
-
+@app.route('/verify',methods= ['GET'])
+def health_check():
+    return jsonify({"status": "alive"}), 200
 
 def load_and_resize_image_from_url(url, target_size=(300, 300)):
     response = requests.get(url)
@@ -43,6 +45,9 @@ def verify():
     except Exception as e:
         print("[ERROR]", str(e))
         return jsonify({"error": str(e)}), 500
+        
+ 
 app.run(host="0.0.0.0",port=5000)
 
     
+
