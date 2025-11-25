@@ -48,35 +48,35 @@ def verify():
         print("[ERROR]", str(e))
         return jsonify({"error": str(e)}), 500
         
- def build_provider_vector(provider, service_count, subservice_count):
-    vector = []
+ # def build_provider_vector(provider, service_count, subservice_count):
+#     vector = []
 
-    # One-hot service
-    service_vec = [0] * service_count
-    if provider["service_id"] is not None:
-        service_vec[provider["service_id"]] = 1
-    vector.extend(service_vec)
+#     # One-hot service
+#     service_vec = [0] * service_count
+#     if provider["service_Id"] is not None:
+#         service_vec[provider["service_Id"]] = 1
+#     vector.extend(service_vec)
 
-    # Multi-hot subservices
-    sub_vec = [0] * subservice_count
-    for sid in provider["subservices"]:
-        if sid < subservice_count:
-            sub_vec[sid] = 1
-    vector.extend(sub_vec)
+#     # Multi-hot subservices
+#     sub_vec = [0] * subservice_count
+#     for sid in provider["subservices"]:
+#         if sid < subservice_count:
+#             sub_vec[sid] = 1
+#     vector.extend(sub_vec)
 
-    # Numeric features
-    vector.append(provider["avg_rating"] / 5.0)
-    vector.append(min(provider["jobs_done"], 100) / 100.0)
+#     # Numeric features
+#     vector.append(provider["avg_Rating"] / 5.0)
+#     vector.append(min(provider["jobs_Done"], 100) / 100.0)
 
-    return np.array(vector, dtype=float)
+#     return np.array(vector, dtype=float)
 
 
 def build_client_profile(history, provider_vectors):
-    if len(history["provider_ids"]) == 0:
+    if len(history["provider_Ids"]) == 0:
         return np.zeros(len(next(iter(provider_vectors.values()))))
 
     profile_vectors = []
-    for pid in history["provider_ids"]:
+    for pid in history["provider_Ids"]:
         if pid in provider_vectors:
             profile_vectors.append(provider_vectors[pid])
 
@@ -84,6 +84,31 @@ def build_client_profile(history, provider_vectors):
         return np.zeros(len(next(iter(provider_vectors.values()))))
 
     return np.mean(np.array(profile_vectors), axis=0)
+def build_provider_vector(provider, service_count, subservice_count):
+    vector = []
+
+    # One-hot service (convert DB 1-based ID to 0-based index)
+    service_vec = [0] * service_count
+    if provider["service_Id"] is not None:
+        idx = provider["service_Id"] - 1
+        if 0 <= idx < service_count:
+            service_vec[idx] = 1
+    vector.extend(service_vec)
+
+    # Multi-hot subservices (shift to zero-index)
+    sub_vec = [0] * subservice_count
+    for sid in provider["subservices"]:
+        idx = sid - 1
+        if 0 <= idx < subservice_count:
+            sub_vec[idx] = 1
+    vector.extend(sub_vec)
+
+    # Numeric features
+    vector.append(provider["avg_Rating"] / 5.0)
+    vector.append(min(provider["jobs_Done"], 100) / 100.0)
+
+    return np.array(vector, dtype=float)
+
 
 
 @app.post("/recommend/providers")
@@ -91,9 +116,9 @@ def recommend():
     data = request.json
 
     providers = data["providers"]
-    history = data["client_history"]
-    service_count = data["meta"]["service_count"]
-    subservice_count = data["meta"]["subservice_count"]
+    history = data["client_History"]
+    service_count = data["meta"]["service_Count"]
+    subservice_count = data["meta"]["subservice_Count"]
 
     provider_vectors = {}
     vectors_list = []
@@ -102,6 +127,7 @@ def recommend():
     for provider in providers:
         vec = build_provider_vector(provider, service_count, subservice_count)
         provider_vectors[provider["id"]] = vec
+        print("provider['id']:" ,provider["id"])
         vectors_list.append(vec)
 
     # Build client profile
@@ -111,6 +137,7 @@ def recommend():
     similarities = []
     for p in providers:
         pid = p["id"]
+        print("p['id']:", p["id"])
         sim = cosine_similarity(client_profile, provider_vectors[pid].reshape(1, -1))[0][0]
         similarities.append((pid, sim))
 
@@ -122,8 +149,10 @@ def recommend():
     })
 
 
+
 app.run(host="0.0.0.0",port=5000)
 
     
+
 
 
